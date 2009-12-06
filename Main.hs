@@ -1,8 +1,6 @@
 module Main where
 
-import System.Random.Mersenne
-import GSL.Random.Dist
-import GSL.Random.Gen
+import System.Random
 import Control.Monad
 import Graphics.Rendering.Chart.Simple
 
@@ -58,24 +56,14 @@ receive src@(Station srcpos freq) recv@(Station recvpos timestep) = makeSignal f
       dist = mag $ recvpos - srcpos
       delay = dist / c
 
-addnoise sigma rng x = do
-  noise <- getGaussian rng sigma
-  return $ x + noise
+randomnoise :: Int -> [Double]
+randomnoise seed = randoms (mkStdGen seed)
 
-noiseify sigma l = do
-  rng <- newRNG mt19937
-  out <- mapM (addnoise sigma rng) l
-  return out
+gaussiannoise (x:y:rands) = sqrt ((-2 * log x)) * cos(2*pi*y):gaussiannoise rands
 
---plotsignal signal pointcount = do
---  n <- noiseify 
+mkgaussiannoise = gaussiannoise $ randomnoise 22
 
--- mytake :: Int -> [b] -> [b]
--- mytake 0 _ = []
--- mytake n (x:xs) = x : take (n - 1) xs
+noiseify signal variance = zipWith (+) signal $ map ((sqrt variance) *) mkgaussiannoise
 
--- takeM :: (Monad m) => Int -> m [b] -> m [b]
--- takeM 0 _ = return []
--- takeM n (x:xs) = x : (takeM (n - 1) xs) >>= return
-
--- fmap
+plotsignal :: (Double t, PlotWindowType ([t] -> t1)) => t1
+plotsignal signal = plotWindow [1..100] $ take 100 signal

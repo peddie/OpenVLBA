@@ -1,6 +1,10 @@
 module Main where
 
 import System.Random.Mersenne
+import GSL.Random.Dist
+import GSL.Random.Gen
+import Control.Monad
+import Graphics.Rendering.Chart.Simple
 
 data Vector3 = Vector3 { x :: Double 
                        , y :: Double
@@ -54,5 +58,24 @@ receive src@(Station srcpos freq) recv@(Station recvpos timestep) = makeSignal f
       dist = mag $ recvpos - srcpos
       delay = dist / c
 
-noiseify :: Double -> [Double] -> [IO Double]
-noiseify variance signal = zipWith (+) signal (repeat (randomIO :: IO Double))
+addnoise sigma rng x = do
+  noise <- getGaussian rng sigma
+  return $ x + noise
+
+noiseify sigma l = do
+  rng <- newRNG mt19937
+  out <- mapM (addnoise sigma rng) l
+  return out
+
+--plotsignal signal pointcount = do
+--  n <- noiseify 
+
+-- mytake :: Int -> [b] -> [b]
+-- mytake 0 _ = []
+-- mytake n (x:xs) = x : take (n - 1) xs
+
+-- takeM :: (Monad m) => Int -> m [b] -> m [b]
+-- takeM 0 _ = return []
+-- takeM n (x:xs) = x : (takeM (n - 1) xs) >>= return
+
+-- fmap

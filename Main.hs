@@ -56,7 +56,7 @@ makeSineSignal frequency timestep starttime = map sin $ map (2 * pi * frequency 
 -- gaussian noise signal
 makeWhiteSignal :: Int -> Int -> Double -> Int -> [Double]
 makeWhiteSignal source_seed random_seed variance starttime = 
-    take starttime $ gaussiannoise random_seed variance ++ gaussiannoise source_seed variance
+    (take starttime $ gaussiannoise random_seed variance) ++ gaussiannoise source_seed variance
 
 -- additive white gaussian noise (AWGN) channel model with variance specified applied to signal
 noiseifyS seed variance signal = zipWith (+) signal $ gaussiannoise seed variance
@@ -69,24 +69,25 @@ data Receiver = Receiver Vector3 Double
 data Source = Source Vector3 Int Double
 
 -- speed of light
-c = 3e8
+c = 1 -- 3e8
 
 distance a b = mag $ a - b
 -- time taken for light to get from a to b
 lightdelay a b = (distance a b) / c
 
-receive :: Source -> Int -> Receiver -> [Double]
-receive (Source src_pos src_seed variance) random_seed (Receiver recv_pos samplerate) = 
+receive :: Int -> Source -> Receiver -> [Double]
+receive random_seed (Source src_pos src_seed variance) (Receiver recv_pos samplerate) = 
     makeWhiteSignal src_seed random_seed variance $ round $ delay*samplerate
     where
       delay = lightdelay src_pos recv_pos
       
-receivenoisyS seed variance src recv = noiseifyS seed variance $ receive src (seed+1) recv
+-- seed bodge beware!
+receivenoisyS seed variance src recv = noiseifyS seed variance $ receive (222222-seed) src recv
 receivenoisy = receivenoisyS 42
 
 -- Correlation now implemented in tail recursive style, here is the old version for reference:
--- correlation 0 _ _ = 0
--- correlation length (a:as) (b:bs) = a*b + correlation (length-1) as bs
+--correlation 0 _ _ = 0
+--correlation length (a:as) (b:bs) = a*b + correlation (length-1) as bs
 
 correlation' 0 _ _ acc = acc
 correlation' length (a:as) (b:bs) acc = correlation' (length-1) as bs $! acc + a*b
@@ -96,15 +97,19 @@ crosscorrelation length as (b:bs) = correlation length as (b:bs) : crosscorrelat
 
 -- TEST DATA
 r_a :: Receiver
-r_a = Receiver (Vector3 0 0 0) 1e-6
+r_a = Receiver (Vector3 0 0 0) 1 -- 1e-6
 r_b :: Receiver
-r_b = Receiver (Vector3 50000 0 0) 1e-6
+r_b = Receiver (Vector3 100 0 0) 1 -- 1e-6
 r_c :: Receiver
-r_c = Receiver (Vector3 0 50000 0) 1e-6
+r_c = Receiver (Vector3 300 0 0) 1 -- 1e-6
 
 s_a :: Source
-s_a = Source (Vector3 0 0 50000) 1 2.0
+s_a = Source (Vector3 0 0 0) 1 2.0
 
-range :: Double
-range = 1000.0
-plotsignal name signal = plotPDF (name ++ ".pdf") [1..range] $ take 1000 signal
+rcv_a = receivenoisyS 2 1.0 s_a r_a
+rcv_b = receivenoisyS 3 1.0 s_a r_b
+rcv_c = receivenoisyS 4 1.0 s_a r_c
+
+--range :: Double
+--range = 1000.0
+plotsignal name len signal = plotPDF (name ++ ".pdf") [0..(len :: Double)] $ take (floor len) signal

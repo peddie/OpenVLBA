@@ -36,61 +36,74 @@ hat v@(Vector3 x y z) = Vector3 (x / m) (y / m) (z / m)
 (.*) :: Vector3 -> Vector3 -> Double
 (Vector3 x1 y1 z1) .* (Vector3 x2 y2 z2) = x1*x2 + y1*y2 + z1*z2
 
-makeSignal :: Double -> Double -> Double -> [Double]
-makeSignal frequency timestep starttime = map sin $ map (2 * pi * frequency *) [starttime,(starttime+timestep)..]
-
 -- create stream of uniformly distributed random number on [0,1)
 uniformnoise :: Int -> [Double]
-uniformnoise seed = randoms (mkStdGen seed)
+uniformnoise seed = randoms $ mkStdGen seed
 
 -- Create stream of gaussian distributed random numbers applying a Box-Muller transform 
 -- to an input stream of uniformly distributed random numbers 
 boxmuller (x:y:rands) = sqrt (-2 * log x) * cos (2*pi*y) : sqrt (-2 * log x) * sin (2*pi*y) : boxmuller rands
 
 -- stream of random numbers with gaussian distn. with specified variance
-gaussiannoise variance = map ((sqrt variance) *) $ boxmuller $ uniformnoise 22
+gaussiannoise seed variance = map ((sqrt variance) *) $ boxmuller $ uniformnoise seed
+
+-- make various types of signals that our sources could produce
+
+-- sine wave
+makeSineSignal :: Double -> Double -> Double -> [Double]
+makeSineSignal frequency timestep starttime = map sin $ map (2 * pi * frequency *) [starttime,(starttime+timestep)..]
+
+-- gaussian noise signal
+makeWhiteSignal :: Int -> Int -> Double -> Int -> [Double]
+makeWhiteSignal source_seed random_seed variance starttime = 
+    take starttime $ gaussiannoise random_seed variance ++ gaussiannoise source_seed variance
 
 -- additive white gaussian noise (AWGN) channel model with variance specified applied to signal
-noiseify variance signal = zipWith (+) signal $ gaussiannoise variance
+noiseifyS seed variance signal = zipWith (+) signal $ gaussiannoise seed variance
+noiseify = noiseifyS 22
 
-data Station = Station { pos :: Vector3
-                         , timing :: Double 
-                       } deriving (Show)
+-- a reciever has a Vector3 position and a samplerate 
+data Receiver = Receiver Vector3 Double
 
--- timing means frequency for a Source and sample time for a Receiver
-type Receiver = Station
-type Source = Station
+-- a source has a Vector3 position, a source_seed which should be unique to the source and a variance (ie. intenity)
+data Source = Source Vector3 Int Double
 
+-- speed of light
 c = 3e8
 
-stationtiming (Station pos timing) = timing
-stationpos (Station pos timing) = pos
+distance a b = mag $ a - b
+-- time taken for light to get from a to b
+lightdelay a b = (distance a b) / c
 
-stationdist a b = mag $ stationpos a - stationpos b
-stationdelay a b = stationdist a b / c
-
-receive :: Source -> Receiver -> [Double]
-receive src@(Station srcpos freq) recv@(Station recvpos timestep) = makeSignal freq timestep delay
+receive :: Source -> Int -> Receiver -> [Double]
+receive (Source src_pos src_seed variance) random_seed (Receiver recv_pos samplerate) = 
+    makeWhiteSignal src_seed random_seed variance $ round $ delay*samplerate
     where
-      delay = stationdelay src recv
+      delay = lightdelay src_pos recv_pos
       
-receivenoisy variance src recv = noiseify variance $ receive src recv
+receivenoisyS seed variance src recv = noiseifyS seed variance $ receive src (seed+1) recv
+receivenoisy = receivenoisyS 42
 
-correlation 0 as bs = 0
-correlation length (a:as) (b:bs) = a*b + correlation (length-1) as bs
+-- Correlation now implemented in tail recursive style, here is the old version for reference:
+-- correlation 0 _ _ = 0
+-- correlation length (a:as) (b:bs) = a*b + correlation (length-1) as bs
+
+correlation' 0 _ _ acc = acc
+correlation' length (a:as) (b:bs) acc = correlation' (length-1) as bs $! acc + a*b
+correlation length as bs = correlation' length as bs 0
 
 crosscorrelation length as (b:bs) = correlation length as (b:bs) : crosscorrelation length as bs
 
 -- TEST DATA
 r_a :: Receiver
-r_a = Station { pos = Vector3 50000 0 0, timing = 1e-6}
+r_a = Receiver (Vector3 0 0 0) 1e-6
 r_b :: Receiver
-r_b = Station { pos = Vector3 0 50000 0, timing = 1e-6}
+r_b = Receiver (Vector3 50000 0 0) 1e-6
 r_c :: Receiver
-r_c = Station { pos = Vector3 50000 50000 0, timing = 1e-6}
+r_c = Receiver (Vector3 0 50000 0) 1e-6
 
 s_a :: Source
-s_a = Station { pos = Vector3 0 0 50000, timing = 1e3}
+s_a = Source (Vector3 0 0 50000) 1 2.0
 
 range :: Double
 range = 1000.0

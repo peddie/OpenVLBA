@@ -2,7 +2,7 @@ module Main where
 
 import System.Random
 import Control.Monad
-import Graphics.Rendering.Chart.Simple
+import Graphics.Gnuplot.Simple
 
 data Vector3 = Vector3 { x :: Double 
                        , y :: Double
@@ -65,7 +65,7 @@ noiseify = noiseifyS 22
 -- a reciever has a Vector3 position and a samplerate 
 data Receiver = Receiver Vector3 Double
 
--- a source has a Vector3 position, a source_seed which should be unique to the source and a variance (ie. intenity)
+-- a source has a Vector3 position, a source_seed which should be unique to the source and a variance (ie. intensity)
 data Source = Source Vector3 Int Double
 
 -- speed of light
@@ -95,21 +95,33 @@ correlation length as bs = correlation' length as bs 0
 
 crosscorrelation length as (b:bs) = correlation length as (b:bs) : crosscorrelation length as bs
 
+corr2 :: (Num a) => Int -> [a] -> [a] -> a 
+corr2 w a b = sum $ take w $ zipWith (*) a b
+
+corr3 :: (Num a) => Int -> [a] -> [a] -> [a] -> a
+corr3 w a b c = (corr2 w a b) * (corr2 w a c) * (corr2 w b c)
+
+crosscorrpair :: (Num a) => Int -> [a] -> [a] -> [a] -> Int -> Int -> a
+crosscorrpair w as bs cs bo co = corr3 w as (drop bo bs) (drop co cs)
+
+--crosscorr3 :: (Num a) => Int -> Int -> [a] -> [a] -> [a] -> [a]
+-- crosscorr3 w l as bs cs = [crosscorrpair w as bs cs b c | b <- [0..l], c <- [0..l]]
+
 -- TEST DATA
 r_a :: Receiver
-r_a = Receiver (Vector3 0 0 0) 1 -- 1e-6
+r_a = Receiver (Vector3 0 13 0) 1 -- 1e-6
 r_b :: Receiver
-r_b = Receiver (Vector3 100 0 0) 1 -- 1e-6
+r_b = Receiver (Vector3 100 22 0) 1 -- 1e-6
 r_c :: Receiver
-r_c = Receiver (Vector3 300 0 0) 1 -- 1e-6
+r_c = Receiver (Vector3 0 150 78) 1 -- 1e-6
 
 s_a :: Source
-s_a = Source (Vector3 0 0 0) 1 2.0
+s_a = Source (Vector3 0 0 0) 1 0.05
 
 rcv_a = receivenoisyS 2 1.0 s_a r_a
 rcv_b = receivenoisyS 3 1.0 s_a r_b
 rcv_c = receivenoisyS 4 1.0 s_a r_c
 
---range :: Double
---range = 1000.0
-plotsignal name len signal = plotPDF (name ++ ".pdf") [0..(len :: Double)] $ take (floor len) signal
+plotsignal name len signal = plotPath [Title name] $ zip [0.0..len] $ take (floor len) signal
+
+plot2dcorr name w s r1 r2 r3 = plotFunc3d [Title name] [Plot3dType Surface] [0..s] [0..s] (crosscorrpair w r1 r2 r3)

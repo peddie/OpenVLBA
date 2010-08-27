@@ -2,6 +2,7 @@
 
 > import RandomSignals
 > import Objects
+> import Data.Vector.Storable as V
 
 Test data
 
@@ -20,3 +21,5 @@ Test data
 > rcv_a = receivenoisyS (RS 1.0 2) s_a r_a
 > rcv_b = receivenoisyS (RS 1.0 3) s_a r_b
 > rcv_c = receivenoisyS (RS 1.0 4) s_a r_c
+
+> mkDelta offset len = (V.++) ((V.++) (V.replicate (offset-1) 0.0) (V.singleton 1.0)) (V.replicate (len - offset) 0.0)

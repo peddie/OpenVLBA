@@ -10,7 +10,7 @@ License-file:        LICENSE
 Author:              Matt Peddie <mpeddie@gmail.com>, Fergus Noble <fnoble@gmail.com>
 Maintainer:          Matt Peddie <mpeddie@gmail.com>
 
-Build-Depends:       base, gnuplot, vector, fft, random
+Build-Depends:       base, gnuplot, vector, fft, random, carray
 Build-Type:          Simple
 
 Executable:          openvlba

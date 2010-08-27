@@ -1,0 +1,14 @@
+*.hi
+*~
+*.o
+*.a
+*.depend
+*.out
+*.so
+.DS_Store
+*.svn/
+TAGS
+cscope.files
+tags
+*.swp
+dist/

@@ -1,0 +1,17 @@
+Name:                OpenVLBA
+Version:             0.0.1
+Cabal-Version:       >= 1.6
+
+Synopsis:            Open-source long-baseline interferometry
+Description:         A pretty basic package for exploring radio astronomy
+                     
+License:             GPL
+License-file:        LICENSE
+Author:              Matt Peddie <mpeddie@gmail.com>, Fergus Noble <fnoble@gmail.com>
+Maintainer:          Matt Peddie <mpeddie@gmail.com>
+
+Build-Depends:       base, gnuplot, vector, fft, random
+Build-Type:          Simple
+
+Executable:          openvlba
+Main-is:             Main.lhs

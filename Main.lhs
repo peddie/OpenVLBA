@@ -29,11 +29,14 @@ OpenVLBA main function.  Currently just plots some cross-correlations.
 > import RandomSignals
 > import Objects
 > import Test
+> import FastCorr
 
 > main = do
->        plot2dcorr "damnit" 1000 100 rcv_a rcv_b rcv_c
+>        --plot2dcorr "damnit" 1000 100 rcv_a rcv_b rcv_c
+>        plotsignal "foo" 100 $ xCorr rcv_a rcv_b
 
-> plotsignal name len signal = plotPath [Title name] $ V.toList $ V.zipWith (\x y -> (x,y)) (V.enumFromN 0 len) $ V.take len signal
+> plotsignal name len signal = plotPath [Title name] $ zipWith (\x y -> (x,y)) [(0::Double)..(fromIntegral len)] $ V.toList $ V.take len signal
+> ps = plotsignal "1D signal" 
 
 > plot2dcorr name w s r1 r2 r3 = plotFunc3d [Title name] [Plot3dType Surface] [0..s] [0..s] (xcorrinds r1 r2 r3 w)
 

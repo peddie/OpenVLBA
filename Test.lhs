@@ -6,7 +6,7 @@
 
 Test data
 
-> syncMeasurement = (SM 1 0 1e4)
+> syncMeasurement = (SM 1 0 1e6)
 
 > r_a :: Receiver
 > r_a = Receiver (V3 0 0 0) syncMeasurement

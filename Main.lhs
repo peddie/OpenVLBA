@@ -33,7 +33,7 @@ OpenVLBA main function.  Currently just plots some cross-correlations.
 
 > main = do
 >        --plot2dcorr "damnit" 1000 100 rcv_a rcv_b rcv_c
->        plotsignal "foo" 100 $ xCorr rcv_a rcv_b
+>        ps 100 $ xCorr rcv_a rcv_b
 
 > plotsignal name len signal = plotPath [Title name] $ zipWith (\x y -> (x,y)) [(0::Double)..(fromIntegral len)] $ V.toList $ V.take len signal
 > ps = plotsignal "1D signal" 
